@@ -1,0 +1,12 @@
+{
+    "src_host": "127.0.0.1",
+    "src_port": 3310,
+    "src_user": "root",
+    "src_pass": "123456",
+    "src_db": "test",
+    "tgt_host": "127.0.0.1",
+    "tgt_port": 3310,
+    "tgt_user": "root",
+    "tgt_pass": "123456",
+    "tgt_db": "test1"
+}

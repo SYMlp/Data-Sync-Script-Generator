@@ -1,0 +1,12 @@
+---
+description: 编码与工具使用最佳实践
+globs: **/*.py, **/*.js, **/*.ts, **/*.tsx, **/*.jsx
+alwaysApply: true
+---
+
+# 🚫 代码修改红线 (Critical Editing Rules)
+
+1.  **【严防重复】**: 使用 `search_replace` 时，**绝不**要让 `new_string` 意外包含 `old_string` 未覆盖的周边代码，这会导致代码重复（Ghost Code）。
+2.  **【精准定位】**: `old_string` 必须包含足够的上下文以确保**唯一匹配**。
+3.  **【缩进对齐】**: 写入新代码时，必须严格保持 Python/YAML 等缩进敏感语言的层级一致。
+4.  **【先读后改】**: 修改文件前，优先 `read_file` 确认当前内容，不要凭记忆或旧 Context 盲目修改。
