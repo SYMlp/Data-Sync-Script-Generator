@@ -1,0 +1,8 @@
+PyMySQL
+streamlit
+tqdm
+regex
+filelock
+pandas
+openpyxl
+requests

@@ -58,7 +58,8 @@ def retry_rmtree(path, max_retries=3, delay=2):
 
 def clean_build_dirs():
     """清理旧的构建文件夹"""
-    dirs_to_clean = ['build', 'dist']
+    # 仅清理 build 目录，保留 dist 目录以支持多版本共存
+    dirs_to_clean = ['build'] 
     for d in dirs_to_clean:
         retry_rmtree(d)
 
@@ -71,18 +72,17 @@ def check_requirements():
         import PyInstaller
         print("   ✅ PyInstaller 已安装")
     except ImportError:
-        print("   ⚠️ 未检测到 PyInstaller，正在自动安装...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller"])
+        print("   ❌ 未检测到 PyInstaller")
+        print("   请运行: pip install pyinstaller")
+        sys.exit(1)
     
     # 2. 检查 Streamlit
     try:
         import streamlit
         print("   ✅ Streamlit 已安装")
     except ImportError:
-        print("   ❌ 致命错误: 当前环境中未找到 Streamlit！")
-        print("   请确保您已在虚拟环境中运行此脚本，或运行: pip install streamlit")
-        print("   程序即将退出。")
-        time.sleep(3)
+        print("   ❌ 未检测到 Streamlit")
+        print("   请运行: pip install streamlit")
         sys.exit(1)
 
     # 3. 检查并自动安装 tqdm (新增)
@@ -90,13 +90,38 @@ def check_requirements():
         import tqdm
         print("   ✅ tqdm 已安装")
     except ImportError:
-        print("   ⚠️ 未检测到 tqdm，正在自动安装...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "tqdm"])
+        print("   ❌ 未检测到 tqdm")
+        print("   请运行: pip install tqdm")
+        sys.exit(1)
 
 def build_exe():
     """执行打包命令"""
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     run_script = os.path.join(project_root, "run.py")
+    
+    # 使用环境变量控制输出文件名，方便打 Win7 版本
+    exe_name = os.environ.get("EXE_NAME", "MySQL脚本生成器")
+    dist_dir = os.path.join(project_root, 'dist')
+    target_exe = os.path.join(dist_dir, exe_name + ".exe")
+
+    # --- 新增：靶向清理与占用检查 ---
+    if os.path.exists(target_exe):
+        print(f"♻️  检测到旧版本文件: {target_exe}")
+        try:
+            os.remove(target_exe)
+            print("   ✅ 已清理旧版本")
+        except OSError as e:
+            print(f"   ❌ 无法删除旧文件！文件可能正在运行。")
+            print(f"   原因: {e.strerror}")
+            print("   💡 请手动关闭程序后按回车重试，或 Ctrl+C 取消...")
+            input() # 等待用户处理
+            try:
+                os.remove(target_exe) # 二次尝试
+                print("   ✅ 已清理旧版本")
+            except OSError:
+                 print("   ❌ 仍然无法删除，正在退出...")
+                 sys.exit(1)
+    # ------------------------------
     
     # 使用 sys.executable 确保使用的是当前环境的 Python 解析器
     # 使用 -m PyInstaller 确保调用的是当前环境下的模块
@@ -104,8 +129,9 @@ def build_exe():
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",
         "--onefile",
-        "--windowed",
-        "--name", "MySQL脚本生成器",
+        "--windowed", 
+        # "--console",
+        "--name", exe_name,
         "--clean",
         
         # 核心收集策略：强力收集 Streamlit 及其常用依赖
@@ -144,8 +170,20 @@ def build_exe():
         subprocess.check_call(cmd, cwd=project_root)
         print("\n" + "="*50)
         print("🎉 打包成功！")
+        
+        # --- 新增：自动复制配置文件 ---
+        dist_dir = os.path.join(project_root, 'dist')
+        profile_src = os.path.join(project_root, "connection_profiles.json")
+        profile_dst = os.path.join(dist_dir, "connection_profiles.json")
+        
+        if os.path.exists(profile_src):
+            print(f"📦 正在复制配置文件...")
+            shutil.copy2(profile_src, profile_dst)
+            print(f"   ✅ 已复制: connection_profiles.json")
+        # ---------------------------
+
         print("="*50)
-        print(f"👉 可执行文件位置: {os.path.join(project_root, 'dist', 'MySQL脚本生成器.exe')}")
+        print(f"👉 可执行文件位置: {os.path.join(project_root, 'dist', exe_name + '.exe')}")
     except subprocess.CalledProcessError as e:
         print(f"\n❌ 打包失败: {e}")
         sys.exit(1)
