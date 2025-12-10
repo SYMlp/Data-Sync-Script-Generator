@@ -9,6 +9,7 @@ import sys
 from src.core import DatabaseConnector, MetaDataQuerier
 from src.services import ConfigService
 from src.generator import SqlGenerator
+from src.ui.import_helper import render_import_helper_tab
 
 # --- 配置文件管理 ---
 PROFILE_FILE = "connection_profiles.json"
@@ -694,6 +695,25 @@ def render_main_area():
         st.info("👈 请先在左侧侧边栏配置并连接数据库。")
         return
 
+    # 1. 导航栏 (解决上传文件后 Tab 重置问题)
+    if 'current_tab' not in st.session_state:
+        st.session_state.current_tab = "MySQL 脚本生成器"
+
+    # 使用 radio 模拟 tabs，状态完全可控
+    tab_selection = st.radio(
+        "",
+        ["MySQL 脚本生成器", "批量用户导入助手"],
+        horizontal=True,
+        key="current_tab", # 自动双向绑定
+        label_visibility="collapsed"
+    )
+
+    if tab_selection == "MySQL 脚本生成器":
+        render_generator_tab()
+    else:
+        render_import_helper_tab()
+
+def render_generator_tab():
     # 1. 表结构配置
     src_main, src_child, tgt_main, tgt_child, is_risk = render_table_section()
 
